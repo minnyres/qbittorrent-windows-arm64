@@ -2,35 +2,38 @@
 
 set -e
 runtime=clang-aarch64
+libtorrent_ver=1.2.17
+qbittorrent_ver=4.4.5
 
 workdir=$PWD
 
 pacman -S --needed diffutils p7zip mingw-w64-${runtime}-boost mingw-w64-${runtime}-clang mingw-w64-${runtime}-cmake mingw-w64-${runtime}-qt5-base mingw-w64-${runtime}-qt5-svg mingw-w64-${runtime}-qt5-tools mingw-w64-${runtime}-qt5-translations mingw-w64-${runtime}-qt5-winextras
 
 # Build libtorrent
-wget -nc https://github.com/arvidn/libtorrent/releases/download/v1.2.17/libtorrent-rasterbar-1.2.17.tar.gz
-tar -xf libtorrent-rasterbar-1.2.17.tar.gz
-cd libtorrent-rasterbar-1.2.17
-mkdir build 
+wget -nc https://github.com/arvidn/libtorrent/releases/download/v${libtorrent_ver}/libtorrent-rasterbar-${libtorrent_ver}.tar.gz
+tar -xf libtorrent-rasterbar-${libtorrent_ver}.tar.gz
+cd libtorrent-rasterbar-${libtorrent_ver}
+# patch -p1 < ${workdir}/0001-fix-stat-marco-conflict.patch
+mkdir -p build
 cd build 
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX="C:/libtorrent" ..
-cmake --build . 
+cmake --build .
 cmake --install .
 
 # Build qbittorrent
 cd $workdir
-wget -nc http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-4.4.5/qbittorrent-4.4.5.tar.xz
-tar -xf qbittorrent-4.4.5.tar.xz
-cd qbittorrent-4.4.5
-mkdir build 
+wget -nc http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-${qbittorrent_ver}/qbittorrent-${qbittorrent_ver}.tar.xz
+tar -xf qbittorrent-${qbittorrent_ver}.tar.xz
+cd qbittorrent-${qbittorrent_ver}
+mkdir -p build
 cd build 
 export PKG_CONFIG_PATH="/c/libtorrent/lib/pkgconfig"
 export LDFLAGS="-lws2_32"
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MODULE_PATH="C:/libtorrent/share/cmake/Modules" -DCMAKE_INSTALL_PREFIX="C:/qbittorrent" -DSTACKTRACE=OFF ..
-cmake --build . 
+cmake --build .
 cmake --install .
 
-# Package and clean
+# Package
 cd $workdir
 cp -r /c/qbittorrent .
 cd qbittorrent
@@ -62,4 +65,4 @@ cp /clangarm64/bin/libbz2-1.dll .
 cp /clangarm64/bin/libbrotlicommon.dll .
 cp /c/libtorrent/bin/libtorrent-rasterbar.dll .
 cd ..
-7z a -mx9 qBittorrent-4.4.5.1-Qt5-WinARM64.7z qbittorrent
+7z a -mx9 qBittorrent-${qbittorrent_ver}-Qt5-WinARM64.7z qbittorrent

@@ -1,0 +1,29 @@
+diff --git a/include/libtorrent/alert_types.hpp b/include/libtorrent/alert_types.hpp
+index 98f8a05..ec18ee7 100644
+--- a/include/libtorrent/alert_types.hpp
++++ b/include/libtorrent/alert_types.hpp
+@@ -84,6 +84,9 @@ POSSIBILITY OF SUCH DAMAGE.
+ #define PROGRESS_NOTIFICATION
+ #endif
+ 
++#ifdef stat
++#undef stat
++#endif
+ 
+ namespace libtorrent {
+ 
+diff --git a/include/libtorrent/stat.hpp b/include/libtorrent/stat.hpp
+index 5bdd1f3..9b8d190 100644
+--- a/include/libtorrent/stat.hpp
++++ b/include/libtorrent/stat.hpp
+@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
+ #include "libtorrent/config.hpp"
+ #include "libtorrent/assert.hpp"
+ 
++#ifdef stat
++#undef stat
++#endif
++
+ namespace libtorrent {
+ 
+ 	class TORRENT_EXTRA_EXPORT stat_channel

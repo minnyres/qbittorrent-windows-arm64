@@ -2,7 +2,7 @@
 
 set -e
 runtime=clang-aarch64
-libtorrent_ver=1.2.17
+libtorrent_ver=2.0.7
 qbittorrent_ver=4.4.5
 
 workdir=$PWD
@@ -13,11 +13,11 @@ pacman -S --needed diffutils p7zip mingw-w64-${runtime}-boost mingw-w64-${runtim
 wget -nc https://github.com/arvidn/libtorrent/releases/download/v${libtorrent_ver}/libtorrent-rasterbar-${libtorrent_ver}.tar.gz
 tar -xf libtorrent-rasterbar-${libtorrent_ver}.tar.gz
 cd libtorrent-rasterbar-${libtorrent_ver}
-# patch -p1 < ${workdir}/0001-fix-stat-marco-conflict.patch
+patch -p1 < ${workdir}/0001-fix-stat-marco-conflict.patch
 mkdir -p build
 cd build 
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX="C:/libtorrent" ..
-cmake --build .
+cmake --build . --parallel 2
 cmake --install .
 
 # Build qbittorrent
@@ -25,20 +25,17 @@ cd $workdir
 wget -nc http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-${qbittorrent_ver}/qbittorrent-${qbittorrent_ver}.tar.xz
 tar -xf qbittorrent-${qbittorrent_ver}.tar.xz
 cd qbittorrent-${qbittorrent_ver}
-mkdir -p build
-cd build 
+# patch -Np1 < ${workdir}/0002-winconf-prepare-env-for-mingw.patch
 export PKG_CONFIG_PATH="/c/libtorrent/lib/pkgconfig"
 export LDFLAGS="-lws2_32"
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MODULE_PATH="C:/libtorrent/share/cmake/Modules" -DCMAKE_INSTALL_PREFIX="C:/qbittorrent" -DSTACKTRACE=OFF ..
-cmake --build .
-cmake --install .
+./configure
+make -j2
 
 # Package
 cd $workdir
-cp -r /c/qbittorrent .
+mkdir -p qbittorrent
 cd qbittorrent
-mv bin/* .
-rmdir bin
+cp ../qbittorrent-${qbittorrent_ver}/src/release/qbittorrent.exe .
 windeployqt qbittorrent.exe
 cp /clangarm64/bin/zlib1.dll .
 cp /clangarm64/bin/libpng16-16.dll .

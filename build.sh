@@ -17,7 +17,7 @@ patch -p1 < ${workdir}/0001-fix-stat-marco-conflict.patch
 mkdir -p build
 cd build 
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX="C:/libtorrent" ..
-cmake --build . --parallel 2
+cmake --build .
 cmake --install .
 
 # Build qbittorrent
@@ -29,13 +29,14 @@ cd qbittorrent-${qbittorrent_ver}
 export PKG_CONFIG_PATH="/c/libtorrent/lib/pkgconfig"
 export LDFLAGS="-lws2_32"
 ./configure
-make -j2
+make
 
 # Package
 cd $workdir
 mkdir -p qbittorrent
 cd qbittorrent
 cp ../qbittorrent-${qbittorrent_ver}/src/release/qbittorrent.exe .
+cp ../qt.conf .
 windeployqt qbittorrent.exe
 cp /clangarm64/bin/zlib1.dll .
 cp /clangarm64/bin/libpng16-16.dll .
@@ -62,4 +63,4 @@ cp /clangarm64/bin/libbz2-1.dll .
 cp /clangarm64/bin/libbrotlicommon.dll .
 cp /c/libtorrent/bin/libtorrent-rasterbar.dll .
 cd ..
-7z a -mx9 qBittorrent-${qbittorrent_ver}-Qt5-WinARM64.7z qbittorrent
+7z a -mx9 qbittorrent_${qbittorrent_ver}_qt5_arm64.7z qbittorrent

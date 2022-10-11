@@ -5,7 +5,7 @@ Please go to [releases](https://github.com/minnyres/qbittorrent-windows-arm64/re
 
 ## How to build
 
-It can be natively built on a WoA system with x64 emulation support.
+It is natively built on Windows 11 ARM64.
 
 1. Install [MSYS2-64bit](https://www.msys2.org/).
 2. Enable and open the Clang ARM64 environment in MSYS2, following https://github.com/msys2/MSYS2-packages/issues/1787#issuecomment-980837586.

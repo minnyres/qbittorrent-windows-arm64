@@ -1,24 +1,21 @@
-name: CI - Windows
+name: Build for Windows ARM64
 
-on: [pull_request, push]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: ${{ github.head_ref != '' }}
+on:
+  push:
+    tags:
+    - '*'
 
 jobs:
-  ci:
+  build-windows-arm64:
     name: Build
     runs-on: windows-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        libt_version: ["2.0.8", "1.2.18"]
-
     env:
       boost_path: "${{ github.workspace }}/../boost"
-      libtorrent_path: "${{ github.workspace }}/libtorrent"
+      libtorrent_path: "${{ github.workspace }}/libtorrent-msvc-arm64"
+      qt_path: "${{ github.workspace }}/../qt-msvc-arm64"
+      libt_version: "2.0.8"
+      qbt_version: "4.5.0"
+      qt_version: "6.4.2"
 
     steps:
       - name: Checkout repository
@@ -26,6 +23,8 @@ jobs:
 
       - name: Setup devcmd
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_arm64
 
       - name: Install build tools
         run: |
@@ -47,15 +46,15 @@ jobs:
             -Name "triplets_overlay" `
             -ItemType Directory
           Copy-Item `
-            "${{ env.RUNVCPKG_VCPKG_ROOT }}/triplets/x64-windows-static.cmake" `
-            "${{ github.workspace }}/triplets_overlay/x64-windows-static-release.cmake"
+            "${{ env.RUNVCPKG_VCPKG_ROOT }}/triplets/community/arm64-windows-static.cmake" `
+            "${{ github.workspace }}/triplets_overlay/arm64-windows-static-release.cmake"
           Add-Content `
-            "${{ github.workspace }}/triplets_overlay/x64-windows-static-release.cmake" `
+            "${{ github.workspace }}/triplets_overlay/arm64-windows-static-release.cmake" `
             -Value "set(VCPKG_BUILD_TYPE release)"
           # clear buildtrees after each package installation to reduce disk space requirements
           $packages = `
-            "openssl:x64-windows-static-release",
-            "zlib:x64-windows-static-release"
+            "openssl:arm64-windows-static-release",
+            "zlib:arm64-windows-static-release"
           ${{ env.RUNVCPKG_VCPKG_ROOT }}/vcpkg.exe upgrade `
             --overlay-triplets="${{ github.workspace }}/triplets_overlay" `
             --no-dry-run
@@ -73,16 +72,32 @@ jobs:
           7z x "${{ runner.temp }}/boost.7z" -o"${{ github.workspace }}/.."
           move "${{ github.workspace }}/../boost_*" "${{ env.boost_path }}"
 
-      - name: Install Qt
+      - name: Install Qt (host x64)
         uses: jurplel/install-qt-action@v3
         with:
-          version: "6.4.0"
-          archives: qtbase qtsvg qttools
+          version: "${{ env.qt_version }}"
+          archives: 'qtbase qttools'
+          set-env: 'false'
+          dir: 'C:'
+
+      - name: Install Qt (target arm64)
+        run: |
+          git clone https://github.com/qt/qt5.git qt6
+          cd qt6
+          git checkout "v${{ env.qt_version }}"
+          perl init-repository --module-subset=qtbase,qtsvg
+          ./configure -opensource -confirm-license -nomake tests -nomake examples `
+            -static -static-runtime -release -xplatform win32-arm64-msvc `
+            -prefix "${{ env.qt_path }}" -qt-host-path "C:/Qt/${{ env.qt_version }}/msvc2019_64" `
+            -system-zlib -openssl-linked -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -- -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release 
+          cmake --build .
+          cmake --install .
 
       - name: Install libtorrent
         run: |
           git clone `
-            --branch v${{ matrix.libt_version }} `
+            --branch v${{ env.libt_version }} `
             --depth 1 `
             --recurse-submodules `
             https://github.com/arvidn/libtorrent.git
@@ -90,74 +105,54 @@ jobs:
           cmake `
             -B build `
             -G "Ninja" `
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-            -DCMAKE_CXX_FLAGS=/guard:cf `
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
+            -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_INSTALL_PREFIX="${{ env.libtorrent_path }}" `
             -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
             -DBOOST_ROOT="${{ env.boost_path }}" `
             -DBUILD_SHARED_LIBS=OFF `
             -Ddeprecated-functions=OFF `
             -Dstatic_runtime=ON `
-            -DVCPKG_TARGET_TRIPLET=x64-windows-static-release
+            -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release
           cmake --build build
           cmake --install build
-
+          
       - name: Build qBittorrent
         run: |
+          $env:path = "${{ env.qt_path }}/bin;$env:path"
+          aria2c http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-${{ env.qbt_version }}/qbittorrent-${{ env.qbt_version }}.tar.gz
+          tar -xf qbittorrent-${{ env.qbt_version }}.tar.gz
+          cd qbittorrent-${{ env.qbt_version }}
           cmake `
             -B build `
             -G "Ninja" `
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-            -DCMAKE_CXX_FLAGS="/WX" `
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DSTACKTRACE=OFF `
             -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
             -DBOOST_ROOT="${{ env.boost_path }}" `
             -DLibtorrentRasterbar_DIR="${{ env.libtorrent_path }}/lib/cmake/LibtorrentRasterbar" `
             -DMSVC_RUNTIME_DYNAMIC=OFF `
             -DQT6=ON `
-            -DTESTING=ON `
-            -DVCPKG_TARGET_TRIPLET=x64-windows-static-release `
-            -DVERBOSE_CONFIGURE=ON `
-            --graphviz=build/target_graph.dot
-          cmake --build build --target qbt_update_translations
+            -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release
           cmake --build build
-          cmake --build build --target check
 
       - name: Prepare build artifacts
         run: |
           mkdir upload
-          copy build/qbittorrent.exe upload
-          copy build/qbittorrent.pdb upload
-          copy dist/windows/qt.conf upload
-          # runtimes
-          copy "${{ env.Qt6_DIR }}/bin/Qt6Core.dll" upload
-          copy "${{ env.Qt6_DIR }}/bin/Qt6Gui.dll" upload
-          copy "${{ env.Qt6_DIR }}/bin/Qt6Network.dll" upload
-          copy "${{ env.Qt6_DIR }}/bin/Qt6Sql.dll" upload
-          copy "${{ env.Qt6_DIR }}/bin/Qt6Svg.dll" upload
-          copy "${{ env.Qt6_DIR }}/bin/Qt6Widgets.dll" upload
-          copy "${{ env.Qt6_DIR }}/bin/Qt6Xml.dll" upload
-          mkdir upload/plugins/iconengines
-          copy "${{ env.Qt6_DIR }}/plugins/iconengines/qsvgicon.dll" upload/plugins/iconengines
-          mkdir upload/plugins/imageformats
-          copy "${{ env.Qt6_DIR }}/plugins/imageformats/qico.dll" upload/plugins/imageformats
-          copy "${{ env.Qt6_DIR }}/plugins/imageformats/qsvg.dll" upload/plugins/imageformats
-          mkdir upload/plugins/platforms
-          copy "${{ env.Qt6_DIR }}/plugins/platforms/qwindows.dll" upload/plugins/platforms
-          mkdir upload/plugins/sqldrivers
-          copy "${{ env.Qt6_DIR }}/plugins/sqldrivers/qsqlite.dll" upload/plugins/sqldrivers
-          mkdir upload/plugins/styles
-          copy "${{ env.Qt6_DIR }}/plugins/styles/qwindowsvistastyle.dll" upload/plugins/styles
-          # cmake additionals
-          mkdir upload/cmake
-          copy build/compile_commands.json upload/cmake
-          copy build/target_graph.dot upload/cmake
-          mkdir upload/cmake/libtorrent
-          copy libtorrent/build/compile_commands.json upload/cmake/libtorrent
+          copy qbittorrent-${{ env.qbt_version }}/build/qbittorrent.exe upload
+          copy qbittorrent-${{ env.qbt_version }}/dist/windows/qt.conf upload
+          cd upload
+          7z a qbittorrent_${{ env.qbt_version }}_arm64.zip *
+          mv qbittorrent_${{ env.qbt_version }}_arm64.zip ..
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: qBittorrent-CI_Windows-x64_libtorrent-${{ matrix.libt_version }}
+          name: qBittorrent_${{ env.qbt_version }}_arm64
           path: upload
+     
+      - name: Batch release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: qbittorrent_${{ env.qbt_version }}_arm64.zip

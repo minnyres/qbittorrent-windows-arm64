@@ -40,17 +40,6 @@ jobs:
 
       - name: Install dependencies from vcpkg
         run: |
-          # tell vcpkg to only build Release variants of the dependencies
-          New-Item `
-            -Path "${{ github.workspace }}" `
-            -Name "triplets_overlay" `
-            -ItemType Directory
-          Copy-Item `
-            "${{ env.RUNVCPKG_VCPKG_ROOT }}/triplets/community/arm64-windows-static.cmake" `
-            "${{ github.workspace }}/triplets_overlay/arm64-windows-static-release.cmake"
-          Add-Content `
-            "${{ github.workspace }}/triplets_overlay/arm64-windows-static-release.cmake" `
-            -Value "set(VCPKG_BUILD_TYPE release)"
           # clear buildtrees after each package installation to reduce disk space requirements
           $packages = `
             "openssl:arm64-windows-static-release",
@@ -89,7 +78,7 @@ jobs:
           ./configure -opensource -confirm-license -nomake tests -nomake examples `
             -static -static-runtime -release -xplatform win32-arm64-msvc `
             -prefix "${{ env.qt_path }}" -qt-host-path "C:/Qt/${{ env.qt_version }}/msvc2019_64" `
-            -system-zlib -openssl-linked -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -- -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
+            -system-zlib  -no-openssl -schannel -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -- -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release 
           cmake --build .
           cmake --install .

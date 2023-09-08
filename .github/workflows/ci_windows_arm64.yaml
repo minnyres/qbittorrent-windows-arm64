@@ -14,8 +14,8 @@ jobs:
       libtorrent_path: "${{ github.workspace }}/libtorrent-msvc-arm64"
       qt_path: "${{ github.workspace }}/../qt-msvc-arm64"
       libt_version: "2.0.9"
-      qbt_version: "4.5.4"
-      qt_version: "6.5.1"
+      qbt_version: "4.5.5"
+      qt_version: "6.5.2"
 
     steps:
       - name: Checkout repository
@@ -78,7 +78,7 @@ jobs:
           ./configure -opensource -confirm-license -nomake tests -nomake examples `
             -static -static-runtime -release -xplatform win32-arm64-msvc `
             -prefix "${{ env.qt_path }}" -qt-host-path "C:/Qt/${{ env.qt_version }}/msvc2019_64" `
-            -system-zlib  -no-openssl -schannel -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -- -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
+            -system-zlib  -openssl-linked -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -- -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release 
           cmake --build .
           cmake --install .

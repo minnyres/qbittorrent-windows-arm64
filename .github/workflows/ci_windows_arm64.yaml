@@ -45,10 +45,8 @@ jobs:
             "openssl:arm64-windows-static-release",
             "zlib:arm64-windows-static-release"
           ${{ env.RUNVCPKG_VCPKG_ROOT }}/vcpkg.exe upgrade `
-            --overlay-triplets="${{ github.workspace }}/triplets_overlay" `
             --no-dry-run
           ${{ env.RUNVCPKG_VCPKG_ROOT }}/vcpkg.exe install `
-            --overlay-triplets="${{ github.workspace }}/triplets_overlay" `
             --clean-after-build `
             $packages
 

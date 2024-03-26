@@ -13,9 +13,9 @@ jobs:
       boost_path: "${{ github.workspace }}/../boost"
       libtorrent_path: "${{ github.workspace }}/libtorrent-msvc-arm64"
       qt_path: "${{ github.workspace }}/../qt-msvc-arm64"
-      libt_version: "2.0.9"
-      qbt_version: "4.6.3"
-      qt_version: "6.6.1"
+      libt_version: "2.0.10"
+      qbt_version: "4.6.4"
+      qt_version: "6.6.3"
 
     steps:
       - name: Checkout repository

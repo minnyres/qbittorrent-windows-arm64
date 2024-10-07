@@ -104,6 +104,7 @@ jobs:
       - name: Build qBittorrent
         run: |
           $env:path = "${{ env.qt_path }}/bin;$env:path"
+          $env:LDFLAGS+=" /FORCE:MULTIPLE"
           aria2c http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-${{ env.qbt_version }}/qbittorrent-${{ env.qbt_version }}.tar.gz
           tar -xf qbittorrent-${{ env.qbt_version }}.tar.gz
           cd qbittorrent-${{ env.qbt_version }}

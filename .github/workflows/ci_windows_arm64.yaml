@@ -13,7 +13,7 @@ jobs:
       qt_path: "${{ github.workspace }}/../qt-msvc-arm64"
       libt_version: "2.0.10"
       qbt_version: "5.0.3"
-      qt_version: "6.8.1"
+      qt_version: "6.7.3"
 
     steps:
       - name: Checkout repository
@@ -63,7 +63,6 @@ jobs:
           aqtversion: '==3.1.*'
           version: "${{ env.qt_version }}"
           archives: 'qtbase qttools'
-          arch: 'win64_msvc2022_64'
           set-env: 'false'
           dir: 'C:'
 
@@ -72,11 +71,10 @@ jobs:
           git clone https://github.com/qt/qt5.git qt6
           cd qt6
           git checkout "v${{ env.qt_version }}"
-          ./configure -init-submodules -submodules qtbase,qtsvg
-          rm CMakeCache.txt
+          perl init-repository --module-subset=qtbase,qtsvg
           ./configure -opensource -confirm-license -nomake tests -nomake examples `
             -static -static-runtime -release -xplatform win32-arm64-msvc `
-            -prefix "${{ env.qt_path }}" -qt-host-path "C:/Qt/${{ env.qt_version }}/msvc2022_64" `
+            -prefix "${{ env.qt_path }}" -qt-host-path "C:/Qt/${{ env.qt_version }}/msvc2019_64" `
             -system-zlib -schannel -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -c++std c++20 -- -DCMAKE_PREFIX_PATH="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-windows-static-release" -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release 
           cmake --build .
@@ -119,7 +117,7 @@ jobs:
             -DBOOST_ROOT="${{ env.boost_path }}" `
             -DLibtorrentRasterbar_DIR="${{ env.libtorrent_path }}/lib/cmake/LibtorrentRasterbar" `
             -DMSVC_RUNTIME_DYNAMIC=OFF `
-            -DSTACKTRACE=OFF `
+            -DSTACKTRACE=ON `
             -DQT6=ON `
             -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release
           cmake --build build

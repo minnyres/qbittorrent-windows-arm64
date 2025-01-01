@@ -39,9 +39,10 @@ jobs:
       - name: Install dependencies from vcpkg
         run: |
           # clear buildtrees after each package installation to reduce disk space requirements
+          echo "set(VCPKG_BUILD_TYPE release)" >> "${{ env.RUNVCPKG_VCPKG_ROOT }}\triplets\community\arm64-windows-static-md.cmake"
           $packages = `
-            "openssl:arm64-windows-static-release",
-            "zlib:arm64-windows-static-release"
+            "openssl:arm64-windows-static-md",
+            "zlib:arm64-windows-static-md"
           ${{ env.RUNVCPKG_VCPKG_ROOT }}/vcpkg.exe upgrade `
             --no-dry-run
           ${{ env.RUNVCPKG_VCPKG_ROOT }}/vcpkg.exe install `
@@ -58,27 +59,22 @@ jobs:
           move "${{ github.workspace }}/../boost_*" "${{ env.boost_path }}"
 
       - name: Install Qt (host x64)
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v3
         with:
           aqtversion: '==3.1.*'
-          version: "${{ env.qt_version }}"
-          archives: 'qtbase qttools'
-          set-env: 'false'
-          dir: 'C:'
+          version: '${{ env.qt_version }}'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
 
-      - name: Install Qt (target arm64)
-        run: |
-          git clone https://github.com/qt/qt5.git qt6
-          cd qt6
-          git checkout "v${{ env.qt_version }}"
-          perl init-repository --module-subset=qtbase,qtsvg
-          ./configure -opensource -confirm-license -nomake tests -nomake examples `
-            -static -static-runtime -release -xplatform win32-arm64-msvc `
-            -prefix "${{ env.qt_path }}" -qt-host-path "C:/Qt/${{ env.qt_version }}/msvc2019_64" `
-            -system-zlib -schannel -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -c++std c++20 -- -DCMAKE_PREFIX_PATH="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-windows-static-release" -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release 
-          cmake --build .
-          cmake --install .
+      - name: Install Qt (arm64)
+        uses: jurplel/install-qt-action@v3
+        with:
+          aqtversion: '==3.1.*'
+          version: '${{ env.qt_version }}'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_arm64'
 
       - name: Install libtorrent
         run: |
@@ -98,13 +94,13 @@ jobs:
             -DBUILD_SHARED_LIBS=OFF `
             -Ddeprecated-functions=OFF `
             -Dstatic_runtime=ON `
-            -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release
+            -DVCPKG_TARGET_TRIPLET=arm64-windows-static-md
           cmake --build build
           cmake --install build
           
       - name: Build qBittorrent
         run: |
-          $env:path = "${{ env.qt_path }}/bin;$env:path"
+          $env:path = "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin;$env:path"
           $env:LDFLAGS+=" /FORCE:MULTIPLE"
           aria2c http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-${{ env.qbt_version }}/qbittorrent-${{ env.qbt_version }}.tar.gz
           tar -xf qbittorrent-${{ env.qbt_version }}.tar.gz
@@ -119,7 +115,7 @@ jobs:
             -DMSVC_RUNTIME_DYNAMIC=OFF `
             -DSTACKTRACE=ON `
             -DQT6=ON `
-            -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release
+            -DVCPKG_TARGET_TRIPLET=arm64-windows-static-md
           cmake --build build
 
       - name: Prepare build artifacts

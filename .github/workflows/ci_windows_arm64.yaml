@@ -105,6 +105,7 @@ jobs:
       - name: Build qBittorrent
         run: |
           $env:path = "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin;$env:path"
+          where.exe qmake
           $env:LDFLAGS+=" /FORCE:MULTIPLE"
           aria2c http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-${{ env.qbt_version }}/qbittorrent-${{ env.qbt_version }}.tar.gz
           tar -xf qbittorrent-${{ env.qbt_version }}.tar.gz
@@ -119,6 +120,7 @@ jobs:
             -DMSVC_RUNTIME_DYNAMIC=ON `
             -DSTACKTRACE=ON `
             -DQT6=ON `
+            -DQT_HOST_PATH="C:/Qt/${{ env.qt_version }}/msvc2019_64" `
             -DVCPKG_TARGET_TRIPLET=arm64-windows-static-md
           cmake --build build
 

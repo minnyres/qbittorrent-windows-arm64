@@ -67,6 +67,7 @@ jobs:
           target: 'desktop'
           arch: 'win64_msvc2019_64'
           dir: 'C:'
+          set-env: 'false'
 
       - name: Install Qt (arm64)
         uses: jurplel/install-qt-action@v3
@@ -77,6 +78,7 @@ jobs:
           target: 'desktop'
           arch: 'win64_msvc2019_arm64'
           dir: 'C:'
+          set-env: 'false'
 
       - name: Install libtorrent
         run: |

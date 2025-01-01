@@ -129,6 +129,20 @@ jobs:
           mkdir upload
           copy qbittorrent-${{ env.qbt_version }}/build/qbittorrent.exe upload
           copy qbittorrent-${{ env.qbt_version }}/dist/windows/qt.conf upload
+          copy "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin/Qt6Core.dll" upload
+          copy "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin/Qt6Gui.dll" upload
+          copy "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin/Qt6Network.dll" upload
+          copy "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin/Qt6Sql.dll" upload
+          copy "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin/Qt6Svg.dll" upload
+          copy "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin/Qt6Widgets.dll" upload
+          copy "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin/Qt6Xml.dll" upload
+          mkdir upload/plugins
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/iconengines" upload/plugins
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/imageformats" upload/plugins
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/platforms" upload/plugins
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/sqldrivers" upload/plugins
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/styles" upload/plugins
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/tls" upload/plugins
           cd upload
           7z a qbittorrent_${{ env.qbt_version }}_arm64.zip *
           mv qbittorrent_${{ env.qbt_version }}_arm64.zip ..

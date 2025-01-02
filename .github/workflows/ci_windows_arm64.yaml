@@ -118,7 +118,7 @@ jobs:
             -DBOOST_ROOT="${{ env.boost_path }}" `
             -DLibtorrentRasterbar_DIR="${{ env.libtorrent_path }}/lib/cmake/LibtorrentRasterbar" `
             -DMSVC_RUNTIME_DYNAMIC=ON `
-            -DSTACKTRACE=ON `
+            -DSTACKTRACE=OFF `
             -DQT6=ON `
             -DQT_HOST_PATH="C:/Qt/${{ env.qt_version }}/msvc2019_64" `
             -DVCPKG_TARGET_TRIPLET=arm64-windows-static-md
@@ -137,12 +137,19 @@ jobs:
           copy "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin/Qt6Widgets.dll" upload
           copy "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/bin/Qt6Xml.dll" upload
           mkdir upload/plugins
-          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/iconengines" upload/plugins
-          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/imageformats" upload/plugins
-          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/platforms" upload/plugins
-          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/sqldrivers" upload/plugins
-          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/styles" upload/plugins
-          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/tls" upload/plugins
+          mkdir upload/plugins/iconengines
+          mkdir upload/plugins/imageformats
+          mkdir upload/plugins/platforms
+          mkdir upload/plugins/sqldrivers
+          mkdir upload/plugins/styles
+          mkdir upload/plugins/tls
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/iconengines/qsvgicon.dll" upload/plugins/iconengines
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/imageformats/qico.dll" upload/plugins/imageformats
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/imageformats/qsvg.dll" upload/plugins/imageformats
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/platforms/qwindows.dll" upload/plugins/platforms
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/sqldrivers/qsqlite.dll" upload/plugins/sqldrivers
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/styles/qmodernwindowsstyle.dll" upload/plugins/styles
+          copy -r "C:/Qt/${{ env.qt_version }}/msvc2019_arm64/plugins/tls/qschannelbackend.dll" upload/plugins/tls
           cd upload
           7z a qbittorrent_${{ env.qbt_version }}_arm64.zip *
           mv qbittorrent_${{ env.qbt_version }}_arm64.zip ..

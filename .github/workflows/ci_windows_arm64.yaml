@@ -82,6 +82,8 @@ jobs:
 
       - name: Install libtorrent
         run: |
+          $env:CXXFLAGS+=" /guard:cf"
+          $env:LDFLAGS+=" /guard:cf"
           git clone `
             --branch v${{ env.libt_version }} `
             --depth 1 `
@@ -106,6 +108,7 @@ jobs:
         run: |
           $env:path = "${{ env.qt_path }}/bin;$env:path"
           $env:LDFLAGS+=" /FORCE:MULTIPLE"
+          $env:CXXFLAGS+="/DQT_FORCE_ASSERTS /WX"
           aria2c http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-${{ env.qbt_version }}/qbittorrent-${{ env.qbt_version }}.tar.gz
           tar -xf qbittorrent-${{ env.qbt_version }}.tar.gz
           cd qbittorrent-${{ env.qbt_version }}

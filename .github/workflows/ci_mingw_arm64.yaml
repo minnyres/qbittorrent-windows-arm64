@@ -1,8 +1,7 @@
-name: Build for Windows ARM64
+name: Build for MinGW ARM64
 
 on:
   push:
-    branches: [ "mingw" ]
 
 jobs:
   build-mingw-arm64:

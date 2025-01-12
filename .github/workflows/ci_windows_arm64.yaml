@@ -2,6 +2,7 @@ name: Build for Windows ARM64
 
 on:
   push:
+    branches: [ "main" ]
 
 jobs:
   build-windows-arm64:

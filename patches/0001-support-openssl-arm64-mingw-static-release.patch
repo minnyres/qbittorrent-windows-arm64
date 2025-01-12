@@ -1,0 +1,67 @@
+From a80f9da11e86af94161b457fccd999284d0db2ab Mon Sep 17 00:00:00 2001
+From: minnnyres <liuthgw23@gmail.com>
+Date: Tue, 24 Sep 2024 15:22:13 +0000
+Subject: [PATCH 1/2] support openssl arm64 mingw static release
+
+---
+ ports/openssl/portfile.cmake                  |  1 +
+ ports/openssl/unix/portfile.cmake             |  2 ++
+ .../openssl/unix/support-mingw-aarch64.patch  | 21 +++++++++++++++++++
+ 3 files changed, 24 insertions(+)
+ create mode 100644 ports/openssl/unix/support-mingw-aarch64.patch
+
+diff --git a/ports/openssl/portfile.cmake b/ports/openssl/portfile.cmake
+index c9b702d93..1edff3dbe 100644
+--- a/ports/openssl/portfile.cmake
++++ b/ports/openssl/portfile.cmake
+@@ -19,6 +19,7 @@ vcpkg_from_github(
+     REF "openssl-${VERSION}"
+     SHA512 c6c152fa3eb06c8dcd4de9fccfd42165ba98715cc560454930709554bcb060db5a8465b70ee1d53e6df6ddc85507f66da745b1f2e2fae9605d808ea861d8f57d
+     PATCHES
++        unix/support-mingw-aarch64.patch
+         cmake-config.patch
+         command-line-length.patch
+         script-prefix.patch
+diff --git a/ports/openssl/unix/portfile.cmake b/ports/openssl/unix/portfile.cmake
+index 98c5dcb54..e1ffcbab4 100644
+--- a/ports/openssl/unix/portfile.cmake
++++ b/ports/openssl/unix/portfile.cmake
+@@ -83,6 +83,8 @@ elseif(VCPKG_TARGET_IS_FREEBSD OR VCPKG_TARGET_IS_OPENBSD)
+ elseif(VCPKG_TARGET_IS_MINGW)
+     if(VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
+         set(OPENSSL_ARCH mingw64)
++    elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL "arm64")
++        set(OPENSSL_ARCH mingwarm64)
+     else()
+         set(OPENSSL_ARCH mingw)
+     endif()
+diff --git a/ports/openssl/unix/support-mingw-aarch64.patch b/ports/openssl/unix/support-mingw-aarch64.patch
+new file mode 100644
+index 000000000..4551a4d88
+--- /dev/null
++++ b/ports/openssl/unix/support-mingw-aarch64.patch
+@@ -0,0 +1,21 @@
++--- a/Configurations/10-main.conf
+++++ b/Configurations/10-main.conf
++@@ -1603,6 +1603,18 @@
++         multilib         => "64",
++     },
++
+++    "mingwarm64" => {
+++        inherit_from     => [ "mingw-common" ],
+++        cflags           => "",
+++        sys_id           => "MINGWARM64",
+++        bn_ops           => add("SIXTY_FOUR_BIT"),
+++        asm_arch         => 'aarch64',
+++        uplink_arch      => 'armv8',
+++        perlasm_scheme   => "win64",
+++        shared_rcflag    => "",
+++        multilib         => "-arm64",
+++    },
+++
++ #### UEFI
++     "UEFI" => {
++         inherit_from     => [ "BASE_unix" ],
+-- 
+2.39.5
+

@@ -1,0 +1,148 @@
+name: Build for Windows ARM64
+
+on:
+  push:
+    branches: [ "mingw" ]
+
+jobs:
+  build-mingw-arm64:
+    name: Build
+    runs-on: ubuntu-latest
+    env:
+      llvm_path: "${{ github.workspace }}/llvm-mingw"
+      libtorrent_path: "${{ github.workspace }}/libtorrent-mingw-arm64"
+      qt_path: "${{ github.workspace }}/qt-mingw-arm64"
+      boost_path: "${{ github.workspace }}/boost"
+      libt_version: "2.0.10"
+      qbt_version: "5.0.3"
+      qt_version: "6.7.3"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install tools
+        run: |
+          sudo apt update
+          sudo apt install \
+            aria2 p7zip build-essential cmake ninja-build pkg-config autoconf automake autoconf-archive make texlive-binaries texinfo bison flex m4 libtool
+          aria2c https://github.com/mstorsjo/llvm-mingw/releases/download/20240619/llvm-mingw-20240619-ucrt-ubuntu-20.04-x86_64.tar.xz
+          tar -xf llvm-mingw-*.tar.xz
+          mv llvm-mingw-20240619-ucrt-ubuntu-20.04-x86_64 llvm-mingw
+
+      - name: Setup a new (or from cache) vcpkg (and does not build any package)
+        uses: lukka/run-vcpkg@v11 # Always specify the specific _version_ of the
+                                  # action you need, `v11` in this case to stay up
+                                  # to date with fixes on the v11 branch
+        with:
+          vcpkgGitCommitId: 'b322364f06308bdd24823f9d8f03fe0cc86fd46f'
+
+      - name: Install dependencies from vcpkg
+        run: |
+          PATH=$PATH:${{ env.llvm_path }}/bin
+          # tell vcpkg to only build Release variants of the dependencies
+          cd ${{ env.RUNVCPKG_VCPKG_ROOT }}
+          patch -p1 < "${{ github.workspace }}/patches//0001-support-openssl-arm64-mingw-static-release.patch"
+          echo "set(VCPKG_BUILD_TYPE release)" >> triplets/community/arm64-mingw-dynamic.cmake
+          echo "set(VCPKG_BUILD_TYPE release)" >> triplets/community/arm64-mingw-static.cmake
+          echo "set(VCPKG_BUILD_TYPE release)" >> triplets/x64-linux.cmake
+          packages='openssl zlib'
+          ./vcpkg upgrade 
+          ./vcpkg install $packages --triplet arm64-mingw-static --clean-after-build 
+          cd installed/arm64-mingw-static/lib/
+          ln libzlib.a libz.a
+
+      - name: Install boost
+        run: |
+          aria2c \
+            "https://jaist.dl.sourceforge.net/project/boost/boost/1.86.0/boost_1_86_0.7z" \
+            -o "boost.7z"
+          7z x "boost.7z"
+          rm "boost.7z"
+          mv boost_1_86_0 boost
+
+      - name: Install Qt (host x64)
+        uses: jurplel/install-qt-action@v4
+        with:
+          aqtversion: '==3.1.*'
+          version: '6.7.3'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+
+      - name: Install Qt (target arm64)
+        run: |
+          git clone https://github.com/qt/qt5.git qt6
+          cd qt6
+          git checkout "v${{ env.qt_version }}"
+          perl init-repository --module-subset=qtbase,qtsvg
+          ./configure -opensource -confirm-license -nomake tests -nomake examples \
+            -static -static-runtime -release -xplatform win32-clang-g++ \
+            -prefix "${{ env.qt_path }}" -qt-host-path "${{ env.QT_ROOT_DIR }}" \
+            -system-zlib  -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -no-icu -c++std c++20 -- \
+            -DQT_FEATURE_openssl_linked=ON \
+            -DLLVM_ARCH=aarch64 -DVCPKG_LIB_PREFIX="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-mingw-static" -DLLVM_PREFIX="${{ env.llvm_path }}" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/Toolchain-llvm-mingw.cmake"
+          cmake --build .
+          cmake --install .
+          
+      - name: Install libtorrent
+        run: |
+          git clone \
+            --branch v${{ env.libt_version }} \
+            --depth 1 \
+            --recurse-submodules \
+            https://github.com/arvidn/libtorrent.git
+          cd libtorrent
+          cmake \
+            -B build \
+            -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${{ env.libtorrent_path }}" \
+            -DBOOST_ROOT="${{ env.boost_path }}" -DBOOST_SRC="${{ env.boost_path }}" \
+            -DBUILD_SHARED_LIBS=OFF \
+            -Ddeprecated-functions=OFF \
+            -Dstatic_runtime=ON \
+            -DLLVM_ARCH=aarch64 -DVCPKG_LIB_PREFIX="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-mingw-static" -DLLVM_PREFIX="${{ env.llvm_path }}" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/Toolchain-llvm-mingw.cmake"
+          cmake --build build
+          cmake --install build
+          
+      - name: Build qBittorrent
+        run: |
+          PATH="${{ env.qt_path }}/bin:$PATH"
+          aria2c http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-${{ env.qbt_version }}/qbittorrent-${{ env.qbt_version }}.tar.gz
+          tar -xf qbittorrent-${{ env.qbt_version }}.tar.gz
+          cd qbittorrent-${{ env.qbt_version }}
+          sed -i 's/Iphlpapi PowrProf/iphlpapi powrprof/g' src/base/CMakeLists.txt
+          cmake \
+            -B build \
+            -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBOOST_ROOT="${{ env.boost_path }}" -DBOOST_SRC="${{ env.boost_path }}" \
+            -DLibtorrentRasterbar_DIR="${{ env.libtorrent_path }}/lib/cmake/LibtorrentRasterbar" \
+            -DSTACKTRACE=OFF \
+            -DQT6=ON \
+            -DLLVM_ARCH=aarch64 -DVCPKG_LIB_PREFIX="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-mingw-static" -DLLVM_PREFIX="${{ env.llvm_path }}" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/Toolchain-llvm-mingw.cmake" 
+          cmake --build build
+
+      - name: Prepare build artifacts
+        run: |
+          mkdir upload
+          cp qbittorrent-${{ env.qbt_version }}/build/qbittorrent.exe upload
+          cp qbittorrent-${{ env.qbt_version }}/dist/windows/qt.conf upload
+          cd upload
+          7z a qbittorrent_${{ env.qbt_version }}_arm64.zip *
+          mv qbittorrent_${{ env.qbt_version }}_arm64.zip ..
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: qBittorrent_${{ env.qbt_version }}_arm64
+          path: upload
+     
+      - name: Batch release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: qbittorrent_${{ env.qbt_version }}_arm64.zip

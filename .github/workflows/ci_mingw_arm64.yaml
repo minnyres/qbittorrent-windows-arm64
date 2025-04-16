@@ -13,8 +13,8 @@ jobs:
       qt_path: "${{ github.workspace }}/qt-mingw-arm64"
       boost_path: "${{ github.workspace }}/boost"
       libt_version: "2.0.11"
-      qbt_version: "5.0.4"
-      qt_version: "6.8.2"
+      qbt_version: "5.0.5"
+      qt_version: "6.7.3"
 
     steps:
       - name: Checkout repository
@@ -34,7 +34,7 @@ jobs:
                                   # action you need, `v11` in this case to stay up
                                   # to date with fixes on the v11 branch
         with:
-          vcpkgGitCommitId: 'd5ec528843d29e3a52d745a64b469f810b2cedbf'
+          vcpkgGitCommitId: 'ce613c41372b23b1f51333815feb3edd87ef8a8b'
 
       - name: Install dependencies from vcpkg
         run: |
@@ -54,11 +54,11 @@ jobs:
       - name: Install boost
         run: |
           aria2c \
-            "https://jaist.dl.sourceforge.net/project/boost/boost/1.87.0/boost_1_87_0.7z" \
+            "https://jaist.dl.sourceforge.net/project/boost/boost/1.88.0/boost_1_88_0.7z" \
             -o "boost.7z"
           7z x "boost.7z"
           rm "boost.7z"
-          mv boost_1_87_0 boost
+          mv boost_1_88_0 boost
 
       - name: Install Qt (host x64)
         uses: jurplel/install-qt-action@v4

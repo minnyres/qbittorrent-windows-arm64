@@ -11,9 +11,9 @@ jobs:
       boost_path: "${{ github.workspace }}/../boost"
       libtorrent_path: "${{ github.workspace }}/libtorrent-msvc-arm64"
       qt_path: "${{ github.workspace }}/../qt-msvc-arm64"
-      libt_version: "2.0.10"
-      qbt_version: "5.0.3"
-      qt_version: "6.7.3"
+      libt_version: "2.0.11"
+      qbt_version: "5.1.0"
+      qt_version: "6.9.0"
 
     steps:
       - name: Checkout repository
@@ -51,7 +51,7 @@ jobs:
       - name: Install boost
         run: |
           aria2c `
-            "https://jaist.dl.sourceforge.net/project/boost/boost/1.86.0/boost_1_86_0.7z" `
+            "https://jaist.dl.sourceforge.net/project/boost/boost/1.88.0/boost_1_88_0.7z" `
             -d "${{ runner.temp }}" `
             -o "boost.7z"
           7z x "${{ runner.temp }}/boost.7z" -o"${{ github.workspace }}/.."
@@ -71,10 +71,11 @@ jobs:
           git clone https://github.com/qt/qt5.git qt6
           cd qt6
           git checkout "v${{ env.qt_version }}"
-          perl init-repository --module-subset=qtbase,qtsvg
+          ./configure -init-submodules -submodules qtbase,qtsvg
+          rm CMakeCache.txt
           ./configure -opensource -confirm-license -nomake tests -nomake examples `
             -static -static-runtime -release -xplatform win32-arm64-msvc `
-            -prefix "${{ env.qt_path }}" -qt-host-path "C:/Qt/${{ env.qt_version }}/msvc2019_64" `
+            -prefix "${{ env.qt_path }}" -qt-host-path "C:/Qt/${{ env.qt_version }}/msvc2022_64" `
             -system-zlib -schannel -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -c++std c++20 -- -DCMAKE_PREFIX_PATH="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-windows-static-release" -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=arm64-windows-static-release 
           cmake --build .
@@ -82,8 +83,6 @@ jobs:
 
       - name: Install libtorrent
         run: |
-          $env:CXXFLAGS+=" /guard:cf"
-          $env:LDFLAGS+=" /guard:cf"
           git clone `
             --branch v${{ env.libt_version }} `
             --depth 1 `
@@ -108,7 +107,6 @@ jobs:
         run: |
           $env:path = "${{ env.qt_path }}/bin;$env:path"
           $env:LDFLAGS+=" /FORCE:MULTIPLE"
-          $env:CXXFLAGS+="/DQT_FORCE_ASSERTS /WX"
           aria2c http://prdownloads.sourceforge.net/qbittorrent/qbittorrent/qbittorrent-${{ env.qbt_version }}/qbittorrent-${{ env.qbt_version }}.tar.gz
           tar -xf qbittorrent-${{ env.qbt_version }}.tar.gz
           cd qbittorrent-${{ env.qbt_version }}
@@ -135,7 +133,7 @@ jobs:
           mv qbittorrent_${{ env.qbt_version }}_arm64.zip ..
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qBittorrent_${{ env.qbt_version }}_arm64
           path: upload

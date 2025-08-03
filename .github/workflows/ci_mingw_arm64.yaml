@@ -13,7 +13,7 @@ jobs:
       qt_path: "${{ github.workspace }}/qt-mingw-arm64"
       boost_path: "${{ github.workspace }}/boost"
       libt_version: "2.0.11"
-      qbt_version: "5.1.1"
+      qbt_version: "5.1.2"
       qt_version: "6.9.1"
 
     steps:
@@ -34,7 +34,7 @@ jobs:
                                   # action you need, `v11` in this case to stay up
                                   # to date with fixes on the v11 branch
         with:
-          vcpkgGitCommitId: 'ce613c41372b23b1f51333815feb3edd87ef8a8b'
+          vcpkgGitCommitId: 'dd3097e305afa53f7b4312371f62058d2e665320'
 
       - name: Install dependencies from vcpkg
         run: |

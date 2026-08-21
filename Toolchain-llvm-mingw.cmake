@@ -18,7 +18,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-s -static")
 # SET(CMAKE_CXX_FLAGS -gcodeview)
 
 # here is the target environment located
-SET(CMAKE_FIND_ROOT_PATH ${LLVM_PREFIX}/generic-w64-mingw32 ${LLVM_PREFIX}/${LLVM_ARCH}-w64-mingw32/bin ${VCPKG_LIB_PREFIX} ${BOOST_SRC})
+SET(CMAKE_FIND_ROOT_PATH ${LLVM_PREFIX}/generic-w64-mingw32 ${LLVM_PREFIX}/${LLVM_ARCH}-w64-mingw32/bin ${VCPKG_LIB_PREFIX} ${LIBS_ROOT} ${BOOST_SRC})
 
 # adjust the default behaviour of the FIND_XXX() commands:
 # search headers and libraries in the target environment, search

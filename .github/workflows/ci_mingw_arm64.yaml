@@ -9,12 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       llvm_path: "${{ github.workspace }}/llvm-mingw"
-      libtorrent_path: "${{ github.workspace }}/libtorrent-mingw-arm64"
-      qt_path: "${{ github.workspace }}/qt-mingw-arm64"
+      library_path: "${{ github.workspace }}/library-mingw-arm64"
+      libtorrent_path: "${{ github.workspace }}/library-mingw-arm64"
+      qt_path: "${{ github.workspace }}/library-mingw-arm64"
       boost_path: "${{ github.workspace }}/boost"
-      libt_version: "2.1.0"
+      libt_version: "2.0.13"
       qbt_version: "5.2.3"
       qt_version: "6.11.1"
+      zlib_version: "1.3.2"
 
     steps:
       - name: Checkout repository
@@ -25,40 +27,35 @@ jobs:
           sudo apt update
           sudo apt install \
             aria2 p7zip build-essential cmake ninja-build pkg-config autoconf automake autoconf-archive make texlive-binaries texinfo bison flex m4 libtool
-          aria2c https://github.com/mstorsjo/llvm-mingw/releases/download/20240619/llvm-mingw-20240619-ucrt-ubuntu-20.04-x86_64.tar.xz
+          aria2c https://github.com/mstorsjo/llvm-mingw/releases/download/20260616/llvm-mingw-20260616-ucrt-ubuntu-22.04-x86_64.tar.xz
           tar -xf llvm-mingw-*.tar.xz
-          mv llvm-mingw-20240619-ucrt-ubuntu-20.04-x86_64 llvm-mingw
+          mv llvm-mingw-20260616-ucrt-ubuntu-22.04-x86_64 llvm-mingw
 
       - name: Setup a new (or from cache) vcpkg (and does not build any package)
         uses: lukka/run-vcpkg@v11 # Always specify the specific _version_ of the
                                   # action you need, `v11` in this case to stay up
                                   # to date with fixes on the v11 branch
         with:
-          vcpkgGitCommitId: 'cd61e1e26a038e82d6550a3ebbe0fbbfe7da78e3'
+          vcpkgGitCommitId: '9e593bb18ea69cc5095e012465dcd675a822ed0d'
 
       - name: Install dependencies from vcpkg
         run: |
           PATH=$PATH:${{ env.llvm_path }}/bin
           # tell vcpkg to only build Release variants of the dependencies
           cd ${{ env.RUNVCPKG_VCPKG_ROOT }}
-          # patch -p1 < "${{ github.workspace }}/patches//0001-support-openssl-arm64-mingw-static-release.patch"
-          echo "set(VCPKG_BUILD_TYPE release)" >> triplets/community/arm64-mingw-dynamic.cmake
           echo "set(VCPKG_BUILD_TYPE release)" >> triplets/community/arm64-mingw-static.cmake
-          echo "set(VCPKG_BUILD_TYPE release)" >> triplets/x64-linux.cmake
-          packages='openssl zlib'
+          packages='openssl'
           ./vcpkg upgrade 
           ./vcpkg install $packages --triplet arm64-mingw-static --clean-after-build 
-          cd installed/arm64-mingw-static/lib/
-          ln libzs.a libz.a
 
       - name: Install boost
         run: |
           aria2c \
-            "https://archives.boost.io/release/1.91.0/source/boost_1_91_0.7z" \
+            "https://archives.boost.io/release/1.92.0/source/boost_1_92_0.7z" \
             -o "boost.7z"
           7z x "boost.7z"
           rm "boost.7z"
-          mv boost_1_91_0 boost
+          mv boost_1_92_0 boost
 
       - name: Install Qt (host x64)
         uses: jurplel/install-qt-action@v4
@@ -68,6 +65,15 @@ jobs:
           host: 'linux'
           target: 'desktop'
           arch: 'linux_gcc_64'
+
+      - name: Install zlib
+        run: |
+          TARGET=aarch64-w64-mingw32
+          PATH=${{ env.llvm_path }}/bin:$PATH
+          git clone https://github.com/madler/zlib.git --depth 1 --branch v${{ env.zlib_version }}
+          cd zlib
+          CC=$TARGET-gcc AR=$TARGET-ar RANLIB=$TARGET-ranlib ./configure --prefix="${{ env.library_path }}/zlib" --static
+          make && make install
 
       - name: Install Qt (target arm64)
         run: |
@@ -80,7 +86,8 @@ jobs:
             -prefix "${{ env.qt_path }}" -qt-host-path "${{ env.QT_ROOT_DIR }}" \
             -system-zlib  -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql -no-icu -c++std c++20 -- \
             -DQT_FEATURE_openssl_linked=ON \
-            -DLLVM_ARCH=aarch64 -DVCPKG_LIB_PREFIX="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-mingw-static" -DLLVM_PREFIX="${{ env.llvm_path }}" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/Toolchain-llvm-mingw.cmake"
+            -DLLVM_ARCH=aarch64 -DVCPKG_LIB_PREFIX="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-mingw-static" -DLLVM_PREFIX="${{ env.llvm_path }}" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/Toolchain-llvm-mingw.cmake" \
+            -DLIBS_ROOT="${{ env.library_path }}"
           cmake --build .
           cmake --install .
           
@@ -101,6 +108,7 @@ jobs:
             -DBUILD_SHARED_LIBS=OFF \
             -Ddeprecated-functions=OFF \
             -Dstatic_runtime=ON \
+            -DLIBS_ROOT="${{ env.library_path }}" \
             -DLLVM_ARCH=aarch64 -DVCPKG_LIB_PREFIX="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-mingw-static" -DLLVM_PREFIX="${{ env.llvm_path }}" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/Toolchain-llvm-mingw.cmake"
           cmake --build build
           cmake --install build
@@ -120,6 +128,7 @@ jobs:
             -DLibtorrentRasterbar_DIR="${{ env.libtorrent_path }}/lib/cmake/LibtorrentRasterbar" \
             -DSTACKTRACE=OFF \
             -DQT6=ON \
+            -DLIBS_ROOT="${{ env.library_path }}" \
             -DLLVM_ARCH=aarch64 -DVCPKG_LIB_PREFIX="${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-mingw-static" -DLLVM_PREFIX="${{ env.llvm_path }}" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/Toolchain-llvm-mingw.cmake" 
           cmake --build build
 
